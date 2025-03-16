@@ -1,181 +1,93 @@
-
-// const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
-// const fs = require("fs");
-// const path = require("path");
-// const multer = require('multer');
-// const FoodRecognition = require("../models/FoodRecognition")
-// require("dotenv").config();
-
-// // Ensure the "uploads" folder exists
-// const uploadDir = 'uploads/';
-// if (!fs.existsSync(uploadDir)) {
-//     fs.mkdirSync(uploadDir, { recursive: true });
-// }
-
-// // Configure multer for file storage
-// const storage = multer.diskStorage({
-//     destination: function(req, file, cb) {
-//         cb(null, uploadDir);
-//     },
-//     filename: function(req, file, cb) {
-//         cb(null, Date.now() + '-' + file.originalname);
-//     }
-// });
-
-// const upload = multer({ storage: storage });
-
-// // Function to analyze food image
-// exports.analyzeFoodImage = async (req, res) => {
-//     if (!req.file) {
-//         return res.status(400).json({ error: 'No file uploaded' });
-//     }
-
-//     try {
-//         // Read the image file and convert it to base64
-//         const imageBuffer = fs.readFileSync(req.file.path);
-//         const base64Image = imageBuffer.toString('base64');
-
-//         // Clarifai API details
-//         const PAT = process.env.CLARIFAI_PAT;
-//         const USER_ID = process.env.CLARIFAI_USER_ID || 'clarifai';
-//         const APP_ID = process.env.CLARIFAI_APP_ID || 'main';
-//         const MODEL_ID = 'food-item-recognition';
-//         const MODEL_VERSION_ID = '1d5fd481e0cf4826aa72ec3ff049e044';
-
-//         // Prepare API request to Clarifai
-//         const raw = JSON.stringify({
-//             "user_app_id": { "user_id": USER_ID, "app_id": APP_ID },
-//             "inputs": [{
-//                 "data": {
-//                     "image": {
-//                         "base64": base64Image
-//                     }
-//                 }
-//             }]
-//         });
-
-//         const requestOptions = {
-//             method: 'POST',
-//             headers: {
-//                 'Accept': 'application/json',
-//                 'Authorization': `Key ${PAT}`,
-//                 'Content-Type': 'application/json'
-//             },
-//             body: raw
-//         };
-
-//         const response = await fetch(`https://api.clarifai.com/v2/models/${MODEL_ID}/versions/${MODEL_VERSION_ID}/outputs`, requestOptions);
-//         const data = await response.json();
-
-//         // Clean up the uploaded file
-//         fs.unlinkSync(req.file.path);
-
-//         if (data.outputs && data.outputs.length > 0) {
-//             return res.json({
-//                 success: true,
-//                 predictions: data.outputs[0].data.concepts
-//             });
-//         } else {
-//             return res.status(400).json({ success: false, message: "No predictions found" });
-//         }
-//     } catch (error) {
-//         // Clean up the uploaded file in case of error
-//         if (req.file && req.file.path) {
-//             fs.unlinkSync(req.file.path);
-//         }
-//         console.error("Error in Clarifai API request:", error);
-//         return res.status(500).json({ error: "Failed to process the image. " + error.message });
-//     }
-// };
-
-// // Export multer middleware
-// exports.upload = upload;
-
-//MEW
-const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 const fs = require("fs");
-const path = require("path");
-const multer = require('multer');
-const FoodRecognition = require("../models/FoodRecognition");
-require("dotenv").config();
+const fetch = (...args) => import("node-fetch").then(({ default: fetch }) => fetch(...args));
+const multer = require("multer");
+const FoodRecognition = require("../models/FoodRecognition"); // Importing model
+const { CLARIFAI_PAT, CALORIENINJA_API_KEY } = process.env; // Use CalorieNinja API Key
 
-// Ensure the "uploads" folder exists
-const uploadDir = "uploads/";
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Configure multer for file storage
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, uploadDir);
-    },
-    filename: function (req, file, cb) {
-        cb(null, Date.now() + "-" + file.originalname);
-    },
-});
-
+// ✅ Configure Multer (Use Memory Storage)
+const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
+exports.upload = upload;
 
-// Function to analyze food image
-exports.analyzeFoodImage = async (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded" });
-    }
-
+// ✅ Function to get calorie info using CalorieNinja API
+const getCalorieInfo = async (foodName) => {
     try {
-        // Read the image file and convert it to base64
-        const imageBuffer = fs.readFileSync(req.file.path);
-        const base64Image = imageBuffer.toString("base64");
+        const formattedFoodName = foodName.trim().toLowerCase();
+        console.log(`🔍 Fetching calorie info for: ${formattedFoodName}`);
 
-        // Clarifai API details
-        const PAT = process.env.CLARIFAI_PAT;
-        const USER_ID = process.env.CLARIFAI_USER_ID || "clarifai";
-        const APP_ID = process.env.CLARIFAI_APP_ID || "main";
-        const MODEL_ID = "food-item-recognition";
-        const MODEL_VERSION_ID = "1d5fd481e0cf4826aa72ec3ff049e044";
-
-        // Prepare API request to Clarifai
-        const raw = JSON.stringify({
-            "user_app_id": { "user_id": USER_ID, "app_id": APP_ID },
-            "inputs": [{
-                "data": {
-                    "image": {
-                        "base64": base64Image
-                    }
-                }
-            }]
+        const response = await fetch(`https://api.calorieninjas.com/v1/nutrition?query=${encodeURIComponent(formattedFoodName)}`, {
+            method: "GET",
+            headers: { "X-Api-Key": CALORIENINJA_API_KEY }, // ✅ Use CalorieNinja API Key
         });
 
-        const requestOptions = {
-            method: "POST",
-            headers: {
-                Accept: "application/json",
-                Authorization: `Key ${PAT}`,
-                "Content-Type": "application/json",
-            },
-            body: raw,
-        };
+        console.log(`📡 CalorieNinja API Response Status: ${response.status}`);
 
-        const response = await fetch(`https://api.clarifai.com/v2/models/${MODEL_ID}/versions/${MODEL_VERSION_ID}/outputs`, requestOptions);
-        const data = await response.json();
-
-        // Clean up the uploaded file
-        fs.unlinkSync(req.file.path);
-
-        let detectedFoods = [];
-        if (data.outputs && data.outputs.length > 0 && data.outputs[0].data.concepts) {
-            detectedFoods = data.outputs[0].data.concepts.map(food => ({
-                name: food.name,
-                confidence: food.value // Confidence score
-            }));
+        if (!response.ok) {
+            const errorBody = await response.text();
+            console.error(`❌ CalorieNinja API Error: HTTP ${response.status} - ${errorBody}`);
+            return 0; // Return 0 if API fails
         }
 
-        console.log("Detected Food Items:", detectedFoods);
+        const data = await response.json();
+        console.log(`✅ API Response for ${formattedFoodName}:`, JSON.stringify(data, null, 2));
 
-        // Store results in MongoDB
+        if (!data.items || data.items.length === 0) {
+            console.warn(`⚠️ No nutrition data found for: ${formattedFoodName}`);
+            return 0;
+        }
+
+        const calories = data.items[0]?.calories ?? 0;
+        console.log(`🔥 Calories for ${formattedFoodName}: ${calories}`);
+        return calories;
+    } catch (error) {
+        console.error(`❌ Error fetching calorie info for ${foodName}:`, error);
+        return 0;
+    }
+};
+
+// ✅ Function to analyze food image
+exports.analyzeFoodImage = async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+
+    try {
+        const base64Image = req.file.buffer.toString("base64");
+
+        const raw = JSON.stringify({
+            user_app_id: { user_id: "clarifai", app_id: "main" },
+            inputs: [{ data: { image: { base64: base64Image } } }],
+        });
+
+        const response = await fetch(
+            "https://api.clarifai.com/v2/models/food-item-recognition/versions/1d5fd481e0cf4826aa72ec3ff049e044/outputs",
+            {
+                method: "POST",
+                headers: {
+                    Accept: "application/json",
+                    Authorization: `Key ${CLARIFAI_PAT}`,
+                    "Content-Type": "application/json",
+                },
+                body: raw,
+            }
+        );
+
+        const data = await response.json();
+
+        if (!data.outputs || !data.outputs[0] || !data.outputs[0].data.concepts) {
+            return res.status(400).json({ error: "No food items detected." });
+        }
+
+        const detectedFoods = await Promise.all(
+            data.outputs[0].data.concepts.map(async (food) => ({
+                name: food.name,
+                confidence: food.value,
+                calories: await getCalorieInfo(food.name) || 0, // ✅ Ensure numeric value
+            }))
+        );
+
+        console.log("✅ Detected Food Items:", detectedFoods);
+
         const newFoodEntry = new FoodRecognition({
-            imageName: req.file.filename,
+            imageName: req.file.originalname,
             recognizedFoods: detectedFoods,
             date: new Date(),
         });
@@ -189,14 +101,7 @@ exports.analyzeFoodImage = async (req, res) => {
             message: "✅ Food items stored successfully!",
         });
     } catch (error) {
-        // Clean up the uploaded file in case of error
-        if (req.file && fs.existsSync(req.file.path)) {
-            fs.unlinkSync(req.file.path);
-        }
         console.error("❌ Error in Clarifai API request:", error);
-        return res.status(500).json({ error: "Failed to process the image. " + error.message });
+        return res.status(500).json({ error: `Failed to process the image. ${error.message}` });
     }
 };
-
-// Export multer middleware
-exports.upload = upload;

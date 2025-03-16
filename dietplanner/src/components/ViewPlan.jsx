@@ -1,190 +1,151 @@
-// // import React from "react";
-
-// // const ViewPlan = () => {
-// //   const mealPlan = [
-// //     {
-// //       meal: "Breakfast",
-// //       food: "Oatmeal with fruits",
-// //       calories: 300,
-// //       protein: "10g",
-// //       carbs: "45g",
-// //       fat: "5g",
-// //     },
-// //     {
-// //       meal: "Lunch",
-// //       food: "Grilled chicken with quinoa",
-// //       calories: 500,
-// //       protein: "35g",
-// //       carbs: "50g",
-// //       fat: "10g",
-// //     },
-// //     {
-// //       meal: "Dinner",
-// //       food: "Salmon with vegetables",
-// //       calories: 400,
-// //       protein: "30g",
-// //       carbs: "30g",
-// //       fat: "12g",
-// //     },
-// //   ];
-
-// //   return (
-// //     <div className="bg-gray-100 min-h-screen p-6">
-// //       <h1 className="text-3xl font-bold text-center mb-6">Today's Meal Plan</h1>
-      
-// //       <div className="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow-md">
-// //         {mealPlan.map((meal, index) => (
-// //           <div key={index} className="mb-4 p-4 border-b last:border-none">
-// //             <h2 className="text-xl font-semibold">{meal.meal}</h2>
-// //             <p className="text-gray-600">{meal.food}</p>
-// //             <p className="text-gray-500 text-sm">Calories: {meal.calories} kcal</p>
-// //             <p className="text-gray-500 text-sm">
-// //               Protein: {meal.protein} | Carbs: {meal.carbs} | Fat: {meal.fat}
-// //             </p>
-// //           </div>
-// //         ))}
-// //       </div>
-      
-// //       <button className="mt-6 block mx-auto bg-indigo-500 text-white px-4 py-2 rounded-md">
-// //         Edit Plan
-// //       </button>
-// //     </div>
-// //   );
-// // };
-
-// // export default ViewPlan;
-
-// import { useEffect, useState } from "react";
-
-// const ViewPlan = () => {
-//     const [mealPlan, setMealPlan] = useState("");
-
-//     useEffect(() => {
-//         fetch("http://localhost:3000/api/latest-meal-plan")
-//             .then((response) => response.json())
-//             .then((data) => {
-//                 if (data.mealPlan) {
-//                     setMealPlan(data.mealPlan);
-//                 } else {
-//                     setMealPlan("No meal plan available.");
-//                 }
-//             })
-//             .catch((error) => console.error("Error fetching meal plan:", error));
-//     }, []);
-
-//     return (
-//         <div>
-//             <h2>Today's Meal Plan</h2>
-//             <p>{mealPlan}</p>
-//         </div>
-//     );
-// };
-
-// export default ViewPlan;
 
 import { useEffect, useState } from "react";
 
 const ViewPlan = () => {
-    const [mealPlans, setMealPlans] = useState([]); // Store all meal plans
-    const [editingPlanId, setEditingPlanId] = useState(null); // Track which plan is being edited
-    const [updatedText, setUpdatedText] = useState(""); // Store updated text
+    const [mealPlans, setMealPlans] = useState([]);
+    const [editingPlanId, setEditingPlanId] = useState(null);
+    const [updatedText, setUpdatedText] = useState("");
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    
+    // ✅ Get the token from localStorage
+    const token = localStorage.getItem("token");
+    console.log("🔑 Retrieved token from localStorage:", token);
 
     useEffect(() => {
-        fetch("http://localhost:3000/api/all-meal-plans") // Fetch all meal plans
-            .then((response) => response.json())
-            .then((data) => setMealPlans(data))
-            .catch((error) => console.error("Error fetching meal plans:", error));
-    }, []);
+        if (!token) {
+            console.warn("⚠️ No token found. Redirecting to login.");
+            setError("User not authenticated. Please log in.");
+            setLoading(false);
+            return;
+        }
 
-    // Function to delete a meal plan
+        const fetchMealPlans = async () => {
+            try {
+                console.log("📡 Fetching meal plans from server...");
+                const response = await fetch(`http://localhost:3000/api/my-meal-plans`, {
+                    method: "GET",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json"
+                    }
+                });
+
+                console.log("📩 Server Response Status:", response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch meal plans: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                console.log("✅ Meal plans received:", data);
+                setMealPlans(data);
+            } catch (err) {
+                console.error("❌ Error fetching meal plans:", err);
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchMealPlans();
+    }, [token]);
+
     const deleteMealPlan = async (id) => {
         try {
-            await fetch(`http://localhost:3000/api/delete-meal-plan/${id}`, {
+            console.log("🗑 Deleting meal plan with ID:", id);
+            const response = await fetch(`http://localhost:3000/api/delete-meal-plan/${id}`, {
                 method: "DELETE",
+                headers: { Authorization: `Bearer ${token}` }
             });
 
-            // Update state to reflect the deleted plan
-            setMealPlans(mealPlans.filter((plan) => plan._id !== id));
+            if (!response.ok) {
+                throw new Error(`Failed to delete meal plan: ${response.statusText}`);
+            }
+
+            console.log("✅ Meal plan deleted successfully");
+            setMealPlans((prevPlans) => prevPlans.filter((plan) => plan._id !== id));
         } catch (error) {
-            console.error("Error deleting meal plan:", error);
+            console.error("❌ Error deleting meal plan:", error);
+            alert("Failed to delete meal plan.");
         }
     };
 
-    // Function to enable editing mode
     const startEditing = (plan) => {
+        console.log("✏️ Editing meal plan:", plan._id);
         setEditingPlanId(plan._id);
         setUpdatedText(plan.mealPlan);
     };
 
-    // Function to update a meal plan
     const updateMealPlan = async (id) => {
+        if (!updatedText.trim()) {
+            alert("Meal plan cannot be empty.");
+            return;
+        }
+
         try {
+            console.log("🔄 Updating meal plan with ID:", id);
             const response = await fetch(`http://localhost:3000/api/update-meal-plan/${id}`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ mealPlan: updatedText }),
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ updatedMealPlan: updatedText }),
             });
 
+            console.log("📩 Server Response Status:", response.status);
+            
+            if (!response.ok) {
+                throw new Error(`Failed to update meal plan: ${response.statusText}`);
+            }
+
             const updatedPlan = await response.json();
+            console.log("✅ Meal plan updated:", updatedPlan);
 
-            // Update state with the modified plan
-            setMealPlans(mealPlans.map((plan) => (plan._id === id ? updatedPlan : plan)));
-
-            setEditingPlanId(null); // Exit edit mode
+            setMealPlans((prevPlans) =>
+                prevPlans.map((plan) => (plan._id === id ? updatedPlan : plan))
+            );
+            setEditingPlanId(null);
         } catch (error) {
-            console.error("Error updating meal plan:", error);
+            console.error("❌ Error updating meal plan:", error);
+            alert("Failed to update meal plan.");
         }
     };
 
+    if (loading) return <p className="text-center text-gray-500">Loading meal plans...</p>;
+    if (error) return <p className="text-center text-red-500">{error}</p>;
+
     return (
         <div className="bg-gray-100 min-h-screen p-6">
-            <h1 className="text-3xl font-bold text-center mb-6">Meal Plans</h1>
+            <h1 className="text-3xl font-bold text-center mb-6">My Meal Plans</h1>
 
             <div className="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow-md">
                 {mealPlans.length > 0 ? (
                     mealPlans.map((plan) => (
                         <div key={plan._id} className="mb-4 p-4 border-b last:border-none flex justify-between items-center">
                             {editingPlanId === plan._id ? (
-                                // If in edit mode, show an input field
-                                <input
-                                    type="text"
-                                    className="border p-2 w-full"
-                                    value={updatedText}
-                                    onChange={(e) => setUpdatedText(e.target.value)}
-                                />
-                            ) : (
-                                <div>
-                                    <h2 className="text-xl font-semibold">{plan.mealPlan}</h2>
-                                    <small className="text-gray-500">
-                                        Generated on: {new Date(plan.timestamp).toLocaleString()}
-                                    </small>
+                                <div className="flex flex-col gap-2 w-full">
+                                    <input
+                                        type="text"
+                                        value={updatedText}
+                                        onChange={(e) => setUpdatedText(e.target.value)}
+                                        className="border p-2 rounded w-full"
+                                    />
+                                    <div className="flex gap-2">
+                                        <button onClick={() => updateMealPlan(plan._id)} className="bg-blue-500 text-white px-3 py-1 rounded">✅ Save</button>
+                                        <button onClick={() => setEditingPlanId(null)} className="bg-gray-500 text-white px-3 py-1 rounded">❌ Cancel</button>
+                                    </div>
                                 </div>
+                            ) : (
+                                <>
+                                    <h2 className="text-xl font-semibold">{plan.mealPlan}</h2>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => startEditing(plan)} className="bg-yellow-500 text-white px-3 py-1 rounded">✏️ Edit</button>
+                                        <button onClick={() => deleteMealPlan(plan._id)} className="bg-red-500 text-white px-3 py-1 rounded">🗑 Delete</button>
+                                    </div>
+                                </>
                             )}
-
-                            <div className="flex gap-2">
-                                {editingPlanId === plan._id ? (
-                                    <button
-                                        onClick={() => updateMealPlan(plan._id)}
-                                        className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-700"
-                                    >
-                                        ✅ Save
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={() => startEditing(plan)}
-                                        className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-700"
-                                    >
-                                        ✏️ Edit
-                                    </button>
-                                )}
-
-                                <button
-                                    onClick={() => deleteMealPlan(plan._id)}
-                                    className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-700"
-                                >
-                                    ❌ Delete
-                                </button>
-                            </div>
                         </div>
                     ))
                 ) : (

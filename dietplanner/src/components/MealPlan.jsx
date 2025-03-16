@@ -1,30 +1,4 @@
-// import React, { useEffect, useState } from "react";
 
-// const MealPlan = () => {
-//     const [mealPlan, setMealPlan] = useState("");
-
-//     useEffect(() => {
-//         fetch("http://localhost:5173/api/latest-meal-plan") // Adjust URL as needed
-//             .then((res) => res.json())
-//             .then((data) => {
-//                 if (data.mealPlan) {
-//                     setMealPlan(data.mealPlan);
-//                 } else {
-//                     setMealPlan("No meal plan found. Ask the chatbot to generate one!");
-//                 }
-//             })
-//             .catch((err) => console.error("Error fetching meal plan:", err));
-//     }, []);
-
-//     return (
-//         <div>
-//             <h2>Your Meal Plan</h2>
-//             <p>{mealPlan}</p>
-//         </div>
-//     );
-// };
-
-// export default MealPlan;
 import { useEffect, useState } from "react";
 
 const ViewPlan = () => {

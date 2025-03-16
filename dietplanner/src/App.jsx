@@ -6,6 +6,9 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import ViewPlan from './components/ViewPlan';
 import Community from './pages/Community';
+import CalorieIntake from './components/CalorieIntake';
+import Settings from './pages/Settings';
+import ChangePassword from './pages/ChangePassword';
 function App() {
   return (
     <Router>
@@ -16,6 +19,9 @@ function App() {
         <Route path="/dashboard" element={<Dashboard/>}></Route>
         <Route path="/view-plan" element={<ViewPlan/>}></Route>
         <Route path="/community" element={<Community />} />
+        <Route path='/calorie' element={<CalorieIntake/>}></Route>
+        <Route path='/setting' element={<Settings/>}></Route>
+        <Route path='/change-password' element={<ChangePassword/>}></Route>
       </Routes>
     </Router>
   );

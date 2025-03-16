@@ -2,7 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
-
+// Set EJS as the template engine
 dotenv.config(); // Load .env variables
 
 const config = require("./config"); // Importing config
@@ -43,7 +43,8 @@ const mealRoutes = require("./Routes/Meal");
 app.use("/api", mealRoutes);
 const PostRoutes = require("./Routes/Community");
 app.use("/api" , PostRoutes)
-// Start Server
+const foodRoutes = require('./Routes/foodRoutes'); // Adjust the path as necessary
+app.use('/api', foodRoutes);
 app.listen(config.PORT, () => {
   console.log(`🚀 Server running on http://localhost:${config.PORT}`);
 });
