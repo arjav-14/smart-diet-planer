@@ -45,6 +45,11 @@ const PostRoutes = require("./Routes/Community");
 app.use("/api" , PostRoutes)
 const foodRoutes = require('./Routes/foodRoutes'); // Adjust the path as necessary
 app.use('/api', foodRoutes);
+
+const bmiRoutes = require("./Routes/Bmical");
+const dietRoutes = require("./Routes/dietRoutes");
+app.use("/api/bmi", bmiRoutes);
+app.use("/api/diet", dietRoutes);
 app.listen(config.PORT, () => {
   console.log(`🚀 Server running on http://localhost:${config.PORT}`);
 });
