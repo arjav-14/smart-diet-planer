@@ -48,25 +48,25 @@ exports.processChatMessage = async (req, res) => {
     const { message } = req.body;
     if (!message) return res.status(400).json({ error: "Message is required." });
 
-    // Ensure req.user exists (from auth middleware)
+   
     if (!req.user || !req.user.id) {
       return res.status(401).json({ error: "Unauthorized. User not found." });
     }
 
-    // Extract dietary preferences and allergies
+    
     const { extractedDiets, extractedAllergies } = extractDietaryInfo(message);
 
     // Get AI-generated response
     const botResponse = await getAIResponse(message);
 
-    // Create and save chat entry with dietary info
+    
     const chatEntry = new ChatMessage({
       userId: req.user.id,
       userMessage: message,
       botResponse,
       extractedDiets,
       extractedAllergies,
-      mealPlan: extractedDiets.length > 0 ? botResponse : null, // Store meal plan if diet is mentioned
+      mealPlan: extractedDiets.length > 0 ? botResponse : null, 
     });
 
     await chatEntry.save();
@@ -83,7 +83,7 @@ exports.processChatMessage = async (req, res) => {
   }
 };
 
-// Controller to fetch user's meal plans
+
 exports.getAllMealPlans = async (req, res) => {
   try {
     if (!req.user || !req.user.id) {
